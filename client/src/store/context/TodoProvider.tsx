@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { TodoContext } from "./TodoContext";
 import axios from "axios";
-import { DEFAULT_TODO_LIST } from "../../utils/todoData";
+import { mapServerTodo } from "../../utils/mapServer";
 
 interface TodoProvidorProps {
   children: React.ReactNode;
@@ -18,16 +18,9 @@ export const TodoProvidor: React.FC<TodoProvidorProps> = ({ children }) => {
   const getTodos = async () => {
     try {
       const response = await axios.get<ServerTodo[]>(
-        "http://localhost:5000/get"
+        "http://localhost:5000/todos/get"
       );
-      console.log(response.data);
-      const formatted: Todo[] = response.data.map((t) => ({
-        id: t._id,
-        name: t.name,
-        description: t.description,
-        checked: t.checked,
-      }));
-      setTodos(formatted);
+      setTodos(response.data.map(mapServerTodo));
     } catch (error) {
       console.log(error);
     }
@@ -38,58 +31,81 @@ export const TodoProvidor: React.FC<TodoProvidorProps> = ({ children }) => {
   }, []);
 
   const addTodo = async ({
-    name,
+    name, // полтзовательсикй ввод
     description,
   }: Omit<Todo, "id" | "checked">) => {
     try {
-      const response = await axios.post("http://localhost:5000/add", {
-        name: name,
-        description: description,
-      });
-      setTodos((prev) => [
-        ...prev,
+      const response = await axios.post<ServerTodo>(
+        "http://localhost:5000/todos/add",
         {
-          id: response.data._id,
-          name,
-          description,
-          checked: response.data.checked,
-        },
-      ]);
+          name: name,
+          description: description,
+        }
+      );
+      setTodos((prev) => [...prev, mapServerTodo(response.data)]); // чтобы в других файлах выташить todo.id а не todo._id
     } catch (error) {
       console.log(error);
     }
   };
 
+  console.log(idForEdit);
 
+  const checkTodo = async (id: Todo["id"]) => {
+    try {
+      const response = await axios.patch(
+        `http://localhost:5000/todos/check/${id}`
+      );
 
-  
-//////////////////////////////////////////////////////////////
-  const checkTodo = (id: Todo["id"]) => {
-    setTodos((prev) =>
-      prev.map((todo) => {
-        if (todo.id === id) {
-          return { ...todo, checked: !todo.checked };
-        }
-        return todo;
-      })
-    );
-  };
+      const updatedTodo = response.data;
 
-  const deleteTodo = (id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  };
-
-  const changeTodo = (todos: Omit<Todo, "id" | "checked">) => {
-    setTodos((prev) => {
-      return prev.map((todo) => {
-        if (todo.id === idForEdit) {
-          return { ...todo, name: todos.name, description: todos.description };
-        } else {
+      setTodos((prev) =>
+        prev.map((todo) => {
+          if (todo.id === id) {
+            return mapServerTodo(updatedTodo);
+          }
           return todo;
+        })
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const deleteTodo = async (id: string) => {
+    try {
+      await axios.delete(`http://localhost:5000/todos/delete/${id}`);
+      setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const changeTodo = async ({
+    name,
+    description,
+  }: Omit<Todo, "id" | "checked">) => {
+    if (!idForEdit) return;
+    try {
+      const response = await axios.patch(
+        `http://localhost:5000/todos/update/${idForEdit}`,
+        {
+          name: name,
+          description: description,
         }
+      );
+      setTodos((prev) => {
+        return prev.map((todo) => {
+          if (todo.id === idForEdit) {
+            return mapServerTodo(response.data);
+          } else {
+            return todo;
+          }
+        });
       });
-    });
-    setIdForEdit(null);
+      setIdForEdit(null);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const value = React.useMemo(
