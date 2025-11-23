@@ -1,6 +1,4 @@
 import express from "express";
-import TodoModel from "../../modules/todos/todos.model";
-import { error } from "console";
 import {
   addTodo,
   checkTodo,
@@ -8,17 +6,18 @@ import {
   getTodos,
   updateTodo,
 } from "../../controllers/todos/todos.controller";
+import { checkAuth } from "../../middleware/checkAuth";
 
 const router = express.Router();
 
-router.get("/get", getTodos);
+router.get("/get",checkAuth, getTodos);
 
-router.post("/add", addTodo);
+router.post("/add", checkAuth, addTodo);
 
-router.patch("/check/:id", checkTodo);
+router.patch("/check/:id", checkAuth, checkTodo);
 
-router.patch("/update/:id", updateTodo);
+router.patch("/update/:id", checkAuth, updateTodo);
 
-router.delete("/delete/:id", deleteTodo);
+router.delete("/delete/:id", checkAuth, deleteTodo);
 
 export default router;

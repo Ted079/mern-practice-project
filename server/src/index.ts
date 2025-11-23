@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose, { Schema, model } from "mongoose";
 import todoRouter from "./routes/todos/todos.route";
+import userRouter from "./routes/user/user.route";
 
 //dotenv — это библиотека, которая загружает переменные из файла .env в process.env.
 //Зачем он нужен?
@@ -36,6 +37,7 @@ async function start() {
 }
 
 app.use("/todos", todoRouter );
+app.use("/user", userRouter );
 
 app.listen(PORT, () => {
   console.log(`Server started on PORT = ${PORT}`); //endpoint
